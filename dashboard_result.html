@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <title>Dashboard Infrastruktur Sampah Tuban</title>
+</head>
+<body class="bg-slate-100 p-6">
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-blue-900">Dashboard Perencanaan Infrastruktur Sampah 2030</h1>
+            <p class="text-slate-600">Analisis Kebutuhan vs Ketersediaan Sarana (Kabupaten Tuban)</p>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-blue-900 text-white p-6 rounded-xl shadow-lg">
+                <p class="text-blue-200 uppercase text-xs font-bold">Total Gap TPS (Unit)</p>
+                <h2 id="card-gap" class="text-4xl font-black mt-2">-</h2>
+            </div>
+            <div class="bg-amber-500 text-slate-900 p-6 rounded-xl shadow-lg">
+                <p class="text-slate-800 uppercase text-xs font-bold">Estimasi Anggaran Dibutuhkan</p>
+                <h2 id="card-biaya" class="text-4xl font-black mt-2">-</h2>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow mb-8">
+            <h3 class="font-bold text-lg mb-4">Grafik Kebutuhan TPS per Kecamatan</h3>
+            <canvas id="barChart" height="80"></canvas>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow overflow-hidden">
+            <h3 class="font-bold text-lg mb-4">Detail Per Desa</h3>
+            <div class="overflow-x-auto">
+                <table id="tabel-sampah" class="w-full text-left border-collapse display">
+                    <thead>
+                        <tr class="bg-slate-200">
+                            <th class="p-3 border">Kecamatan</th>
+                            <th class="p-3 border">Desa</th>
+                            <th class="p-3 border">Gap TPS (Unit)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        fetch('dashboard_data.json')
+            .then(res => res.json())
+            .then(data => {
+                // Update Cards
+                document.getElementById('card-gap').innerText = data.summary.total_tps + " Unit";
+                document.getElementById('card-biaya').innerText = data.summary.total_biaya;
+
+                // Render Chart
+                new Chart(document.getElementById('barChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: data.chart.labels,
+                        datasets: [{ label: 'Gap TPS (Unit)', data: data.chart.data, backgroundColor: '#1e3a8a' }]
+                    }
+                });
+
+                // Render Tabel (Dengan proteksi jika data tidak ada)
+                const tbody = document.getElementById('table-body');
+                if (data.table_data) {
+                    data.table_data.forEach(row => {
+                        tbody.innerHTML += `<tr>
+                            <td class="p-3 border">${row.Kecamatan}</td>
+                            <td class="p-3 border">${row.Desa_Kelurahan}</td>
+                            <td class="p-3 border font-bold">${Math.round(row.gap_tps)}</td>
+                        </tr>`;
+                    });
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="3" class="p-3 text-center">Data detail tidak tersedia.</td></tr>`;
+                }
+
+                // Tambahkan baris ini setelah perulangan data selesai
+                $('#tabel-sampah').DataTable({
+                    "pageLength": 10, // Menampilkan 10 data per halaman
+                    "language": { "search": "Cari Desa/Kec:" }
+                });
+                            })
+            .catch(err => console.error("Gagal memuat dashboard:", err));
+    </script>
+</body>
+</html>
